@@ -30,6 +30,9 @@
             border-radius: 4px;
             border: solid 1px;
         }
+        .el-input{
+            width: 200px;
+        }
     </style>
     <script src="https://unpkg.com/vue/dist/vue.js"></script>
     <!-- import JavaScript -->
@@ -49,7 +52,9 @@
                         <el-dropdown-item>
                             <el-button type="text" @click="changepassword">修改密码</el-button>
                         </el-dropdown-item>
-                        <el-dropdown-item>设置</el-dropdown-item>
+                        <el-dropdown-item>
+                            <el-button type="text" @click="settingFormVisible = true">设置</el-button>
+                        </el-dropdown-item>
                         <el-dropdown-item>退出</el-dropdown-item>
                     </el-dropdown-menu>
                 </el-dropdown>
@@ -76,12 +81,35 @@
                         </el-table-column>
                         </el-table-column>
                         <el-table-column prop="operate" label="operate">
-                            <el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">删除
-                            </el-button>
+                            <template slot-scope="scope">
+                                <el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">删除
+                                </el-button>
+                            </template>
                         </el-table-column>
                     </el-table>
                 </el-main>
             </el-container>
+            <el-dialog title="设置" :visible.sync="settingFormVisible">
+                <el-tabs type="border-card">
+                    <el-tab-pane label="Zookeep配置">
+                        <el-form :model="form" label-width="80px" :model="right">
+                            <el-form-item v-for="(node, index) in form.nodes" :label="'节点' + (index+1)" :key="node.key"
+                                :prop="'nodes.' + index + '.value'" :rules="{
+      required: true, message: '不能为空', trigger: 'blur'
+    }">
+                                <el-input v-model="node.value"></el-input>
+                                <el-button @click.prevent="removeNode(node)">删除</el-button>
+                                <el-button @click="addNode" v-if="(index+1) == form.nodes.length">新增节点</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </el-tab-pane>
+                    <el-tab-pane label="其他"></el-tab-pane>
+                </el-tabs>
+                <div slot="footer" class="dialog-footer">
+                    <el-button @click="settingFormVisible = false">取 消</el-button>
+                    <el-button type="primary" @click="settingFormVisible = false">确 定</el-button>
+                </div>
+            </el-dialog>
         </el-container>
     </div>
 
@@ -99,7 +127,15 @@
                     label: 'name',
                     children: 'zones',
                     isLeaf: 'leaf'
-                }
+                },
+                settingFormVisible: false,
+                form: {
+                    nodes: [{
+                        value: ''
+                    }],
+                    formLabelWidth: '10px'
+                },
+                labelPosition: 'right',
             },
             methods: {
                 loadNode(node, resolve) {
@@ -137,6 +173,18 @@
                 },
                 handleDelete(index, row) {
                     console.log(index, row);
+                },
+                removeNode(item) {
+                    var index = this.form.nodes.indexOf(item)
+                    if (index !== -1) {
+                        this.form.nodes.splice(index, 1)
+                    }
+                },
+                addNode() {
+                    this.form.nodes.push({
+                        value: '',
+                        key: Date.now()
+                    });
                 }
             }
         })
