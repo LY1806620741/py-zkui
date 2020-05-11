@@ -30,7 +30,8 @@
             border-radius: 4px;
             border: solid 1px;
         }
-        .el-input{
+
+        .el-input {
             width: 200px;
         }
     </style>
@@ -53,7 +54,7 @@
                             <el-button type="text" @click="changepassword">修改密码</el-button>
                         </el-dropdown-item>
                         <el-dropdown-item>
-                            <el-button type="text" @click="settingFormVisible = true">设置</el-button>
+                            <el-button type="text" @click="settingDialogVisible = true">设置</el-button>
                         </el-dropdown-item>
                         <el-dropdown-item>退出</el-dropdown-item>
                     </el-dropdown-menu>
@@ -89,25 +90,24 @@
                     </el-table>
                 </el-main>
             </el-container>
-            <el-dialog title="设置" :visible.sync="settingFormVisible">
-                <el-tabs type="border-card">
-                    <el-tab-pane label="Zookeep配置">
-                        <el-form :model="form" label-width="80px" :model="right">
-                            <el-form-item v-for="(node, index) in form.nodes" :label="'节点' + (index+1)" :key="node.key"
-                                :prop="'nodes.' + index + '.value'" :rules="{
-      required: true, message: '不能为空', trigger: 'blur'
-    }">
+            <el-dialog title="设置" :visible.sync="settingDialogVisible" :close-on-click-modal="false">
+                <el-tabs type="border-card" v-model="settingTabs">
+                    <el-tab-pane label="Zookeep配置" name="nodeForm">
+                        <el-form :model="nodeForm" label-width="80px" ref="nodeForm">
+                            <el-form-item v-for="(node, index) in nodeForm.nodes" :label="'节点' + (index+1)" :key="node.key"
+                                :prop="'nodes.' + index + '.value'"
+                                :rules="{ validator: validateIpPort, trigger: 'blur' }">
                                 <el-input v-model="node.value"></el-input>
                                 <el-button @click.prevent="removeNode(node)">删除</el-button>
-                                <el-button @click="addNode" v-if="(index+1) == form.nodes.length">新增节点</el-button>
+                                <el-button @click="addNode" v-if="(index+1) == nodeForm.nodes.length">新增节点</el-button>
                             </el-form-item>
                         </el-form>
                     </el-tab-pane>
                     <el-tab-pane label="其他"></el-tab-pane>
                 </el-tabs>
                 <div slot="footer" class="dialog-footer">
-                    <el-button @click="settingFormVisible = false">取 消</el-button>
-                    <el-button type="primary" @click="settingFormVisible = false">确 定</el-button>
+                    <el-button @click="settingDialogVisible = false">取 消</el-button>
+                    <el-button type="primary" @click="submitForm(settingTabs)">确 定</el-button>
                 </div>
             </el-dialog>
         </el-container>
@@ -128,14 +128,22 @@
                     children: 'zones',
                     isLeaf: 'leaf'
                 },
-                settingFormVisible: false,
-                form: {
+                settingDialogVisible: false,
+                nodeForm: {
                     nodes: [{
                         value: ''
                     }],
                     formLabelWidth: '10px'
                 },
                 labelPosition: 'right',
+                validateIpPort: (rule, value, callback) => {
+                    if (value === '') {
+                        callback(new Error('不能为空'));
+                    } else if (value.search(/(2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2}:\d+/) < 0) {
+                        callback(new Error('格式不正确,应为ip:port'));
+                    }
+                },
+                settingTabs: 'nodeForm'
             },
             methods: {
                 loadNode(node, resolve) {
@@ -184,6 +192,18 @@
                     this.form.nodes.push({
                         value: '',
                         key: Date.now()
+                    });
+                },
+                submitForm(formName) {
+                    console.log(formName);
+                    this.$refs[formName].validate((valid) => {
+                        console.log(valid);
+                        if (valid) {
+                            alert('submit!');
+                        } else {
+                            console.log('error submit!!');
+                            return false;
+                        }
                     });
                 }
             }
