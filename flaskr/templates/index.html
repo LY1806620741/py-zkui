@@ -36,6 +36,7 @@
         }
     </style>
     <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <!-- import JavaScript -->
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
 </head>
@@ -94,11 +95,12 @@
                 <el-tabs type="border-card" v-model="settingTabs">
                     <el-tab-pane label="Zookeep配置" name="nodeForm">
                         <el-form :model="nodeForm" label-width="80px" ref="nodeForm">
-                            <el-form-item v-for="(node, index) in nodeForm.nodes" :label="'节点' + (index+1)" :key="node.key"
-                                :prop="'nodes.' + index + '.value'"
+                            <el-form-item v-for="(node, index) in nodeForm.nodes" :label="'节点' + (index+1)"
+                                :key="node.key" :prop="'nodes.' + index + '.value'"
                                 :rules="{ validator: validateIpPort, trigger: 'blur' }">
-                                <el-input v-model="node.value"></el-input>
-                                <el-button @click.prevent="removeNode(node)">删除</el-button>
+                                <el-input v-model="node.value" placeholder="x.x.x.x:port" clearable></el-input>
+                                <el-button @click.prevent="removeNode(node)" v-if="nodeForm.nodes.length > 1">删除
+                                </el-button>
                                 <el-button @click="addNode" v-if="(index+1) == nodeForm.nodes.length">新增节点</el-button>
                             </el-form-item>
                         </el-form>
@@ -130,9 +132,7 @@
                 },
                 settingDialogVisible: false,
                 nodeForm: {
-                    nodes: [{
-                        value: ''
-                    }],
+                    nodes: [],
                     formLabelWidth: '10px'
                 },
                 labelPosition: 'right',
@@ -141,6 +141,8 @@
                         callback(new Error('不能为空'));
                     } else if (value.search(/(2(5[0-5]|[0-4]\d))|[0-1]?\d{1,2}:\d+/) < 0) {
                         callback(new Error('格式不正确,应为ip:port'));
+                    } else {
+                        callback();
                     }
                 },
                 settingTabs: 'nodeForm'
@@ -183,31 +185,44 @@
                     console.log(index, row);
                 },
                 removeNode(item) {
-                    var index = this.form.nodes.indexOf(item)
+                    var index = this.nodeForm.nodes.indexOf(item)
                     if (index !== -1) {
-                        this.form.nodes.splice(index, 1)
+                        this.nodeForm.nodes.splice(index, 1)
                     }
                 },
                 addNode() {
-                    this.form.nodes.push({
-                        value: '',
-                        key: Date.now()
+                    this.nodeForm.nodes.push({
+                        value: ''
                     });
                 },
                 submitForm(formName) {
-                    console.log(formName);
                     this.$refs[formName].validate((valid) => {
-                        console.log(valid);
                         if (valid) {
-                            alert('submit!');
+                            axios.post('/config/node', {
+                                'nodes': this.$data.nodeForm.nodes.map(e => e.value)
+                            }).then(function (response) {
+                                app.$notify({ title: '设置成功', type: 'success' });
+                                app.$data.settingDialogVisible = false;
+                            }).catch(function (error) {
+                                app.$notify.error({ title: '设置失败' });
+                            });
                         } else {
-                            console.log('error submit!!');
                             return false;
                         }
                     });
                 }
             }
         })
+
+        //init config
+        axios.get('/config/node').then(function (response) {
+            response.data.split(",").forEach(element => {
+                app.$data.nodeForm.nodes.push({ value: element })
+            });
+        }).catch(function (error) {
+            app.$data.nodeForm.nodes.push({ value: '' })
+        });
+
     </script>
 </body>
 

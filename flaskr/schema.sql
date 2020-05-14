@@ -7,8 +7,8 @@ CREATE TABLE user (
   password TEXT NOT NULL
 );
 
-CREATE TABLE zk_node (
+CREATE TABLE config (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  host TEXT NOT NULL,
-  port INTEGER NOT NULL
+  key TEXT UNIQUE NOT NULL,
+  value TEXT NULL
 );
