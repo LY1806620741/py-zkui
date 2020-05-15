@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 引入样式 -->
+    <!-- https://element.eleme.cn/#/zh-CN/component/layout 2.13.1-->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <title>py-zkui</title>
+    <style>
+    </style>
+    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <!-- import JavaScript -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+</head>
+
+<body>
+    <div id="app">
+    <el-form :model="login" status-icon :rules="rules" ref="login" label-width="100px">
+      <el-form-item label="账号" prop="user">
+        <el-input v-model="login.user"></el-input>
+      </el-form-item>
+        <el-form-item label="密码" prop="pass">
+          <el-input type="password" v-model="login.pass" autocomplete="on"></el-input>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="submit()">提交</el-button>
+          <el-button @click="reset()">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </div>
+      <script>
+        main= new Vue({
+          el:"#app",
+          data() {
+            var validatePass = (rule, value, callback) => {
+              if (value === '') {
+                callback(new Error('请输入密码'));
+              } else {
+                if (this.login.checkPass !== '') {
+                  this.$refs.login.validateField('checkPass');
+                }
+                callback();
+              }
+            };
+        
+            return {
+              login: {
+                user: '',
+                pass: '',
+              },
+              rules: {
+                pass: [
+                  { validator: validatePass, trigger: 'blur' }
+                ],
+              }
+            };
+          },
+          methods: {
+            submit() {
+              this.$refs['login'].validate((valid) => {
+                if (valid) {
+                  alert('submit!');
+                } else {
+                  return false;
+                }
+              });
+            },
+            reset() {
+              this.$refs['login'].resetFields();
+            }
+          }
+        });
+    </script>
+</body>
+
+</html>

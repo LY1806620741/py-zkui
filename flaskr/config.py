@@ -23,7 +23,6 @@ def ZKnode():
         data=request.get_json(silent=True)
         if 'nodes' in data:
             db = get_db()
-            print('REPLACE INTO config (key, value) VALUES ("nodes",?)',(",".join(data['nodes']),))
             db.execute(
                 'REPLACE INTO config (key, value) VALUES ("nodes",?)',(",".join(data['nodes']),)
             )

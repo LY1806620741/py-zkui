@@ -31,7 +31,7 @@
             border: solid 1px;
         }
 
-        .el-input {
+        #nodeForm .el-input {
             width: 200px;
         }
     </style>
@@ -48,7 +48,7 @@
                 Zookeeper UI
                 <el-dropdown style="float: right;">
                     <el-button type="primary">
-                        <span>jieshao</span><i class="el-icon-arrow-down el-icon--right"></i>
+                        <span>{{ userinfo.username }}</span><i class="el-icon-arrow-down el-icon--right"></i>
                     </el-button>
                     <el-dropdown-menu slot="dropdown">
                         <el-dropdown-item>
@@ -57,7 +57,9 @@
                         <el-dropdown-item>
                             <el-button type="text" @click="settingDialogVisible = true">设置</el-button>
                         </el-dropdown-item>
-                        <el-dropdown-item>退出</el-dropdown-item>
+                        <el-dropdown-item>
+                            <el-button type="text" @click="loginout">退出</el-button>
+                        </el-dropdown-item>
                     </el-dropdown-menu>
                 </el-dropdown>
             </el-header>
@@ -94,7 +96,7 @@
             <el-dialog title="设置" :visible.sync="settingDialogVisible" :close-on-click-modal="false">
                 <el-tabs type="border-card" v-model="settingTabs">
                     <el-tab-pane label="Zookeep配置" name="nodeForm">
-                        <el-form :model="nodeForm" label-width="80px" ref="nodeForm">
+                        <el-form :model="nodeForm" label-width="80px" ref="nodeForm" id="nodeForm">
                             <el-form-item v-for="(node, index) in nodeForm.nodes" :label="'节点' + (index+1)"
                                 :key="node.key" :prop="'nodes.' + index + '.value'"
                                 :rules="{ validator: validateIpPort, trigger: 'blur' }">
@@ -121,6 +123,9 @@
         var app = new Vue({
             el: '#app',
             data: {
+                userinfo: {
+                    'username': 'no user'
+                },
                 tableData: Array(10).fill({
                     name: 'key',
                     value: 'value'
@@ -166,20 +171,57 @@
                     }, 500);
                 },
                 changepassword() {
-                    this.$prompt('输入旧密码', '提示', {
-                        confirmButtonText: '确定',
-                        cancelButtonText: '取消'
-                    }).then(({ value }) => {
-                        this.$message({
-                            type: 'success',
-                            message: '你的密码是: ' + value
+                    if (this.$data.userinfo.haspass) {
+                        this.$prompt('输入旧密码', '提示', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消'
+                        }).then(({ value }) => {
+                            checkpass=value;
+                            axios.post('/auth/changepass', {
+                                'checkpass': value
+                            }).then(function () {
+                                app.$prompt('输入新密码', '校验成功', {
+                                    confirmButtonText: '确定',
+                                    cancelButtonText: '取消'
+                                }).then(({ value }) => {
+                                    axios.post('/auth/changepass', {
+                                        'oldpass': checkpass,
+                                        'newpass': value
+                                    }).then(s => {
+                                        app.$message({ type: 'success', message: '修改成功' });
+                                    }).catch(e => {
+                                        app.$message.error('修改失败，' + e.response.data + '次失败后将禁止修改');
+                                    })
+                                })
+                            }).catch(e => {
+                                app.$message.error('校验失败，' + e.response.data + '次失败后将禁止修改');
+                            })
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                message: '取消输入'
+                            });
                         });
-                    }).catch(() => {
-                        this.$message({
-                            type: 'info',
-                            message: '取消输入'
+                    } else {
+                        this.$prompt('新密码', '提示', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消'
+                        }).then(({ value }) => {
+                            axios.post('/auth/changepass', {
+                                'newpass': value
+                            }).then(function () {
+                                app.$message({ type: 'success', message: '修改成功' });
+                                updateuserinfo();
+                            }).catch(function () {
+                                app.$message.error('修改失败');
+                            });
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                message: '取消输入'
+                            });
                         });
-                    });
+                    }
                 },
                 handleDelete(index, row) {
                     console.log(index, row);
@@ -210,9 +252,20 @@
                             return false;
                         }
                     });
+                },
+                loginout() {
+                    axios.get("/auth/logout").then(function (response) { window.location.href = "/auth/login" })
                 }
             }
         })
+
+        //init user
+        function updateuserinfo() {
+            axios.get('/auth/info').then(function (response) {
+                app.$data.userinfo = (response.data);
+            });
+        };
+        updateuserinfo();
 
         //init config
         axios.get('/config/node').then(function (response) {

@@ -1,12 +1,12 @@
 import functools
 from flask import (
-    Blueprint, flash, g, redirect, render_template, request, session, url_for
+    Blueprint, render_template
 )
-from werkzeug.security import check_password_hash, generate_password_hash
-from flaskr.db import get_db
+from flaskr.auth import login_required
 
-bp = Blueprint('index', __name__, url_prefix='/')
+bp = Blueprint('index', __name__, url_prefix='/',static_folder="templates")
 
 @bp.route('/', methods=('GET', 'POST'))
+@login_required
 def index():
-    return render_template('index.html')
+    return bp.send_static_file('index.html')
