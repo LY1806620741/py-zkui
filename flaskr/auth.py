@@ -45,11 +45,11 @@ def login():
             db.commit()
             user=db.execute(
                'select id from user where username=?',(defaultuser,)
-            )
+            ).fetchone()
             if user is not None:
                 session.clear()
                 session['user_id'] = user['id']
-                return redirect(url_for(''))
+                return redirect(url_for('index.index'))
         else:
             if user['password']=="":
                 session.clear()

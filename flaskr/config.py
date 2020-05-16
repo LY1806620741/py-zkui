@@ -17,6 +17,8 @@ def ZKnode():
         ).fetchone()
         if nodes is not None:
             return nodes[0]
+        else:
+            return ''
     elif (request.method == 'POST'):
         #curl -X POST localhost:5000/config/node -d "nodes='1.1.1.1:1'&nodes='2.2.2.2:2'"
         #axios
