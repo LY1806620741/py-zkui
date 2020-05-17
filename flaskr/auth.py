@@ -12,8 +12,9 @@ defaultuser="jieshao"
 @bp.route('/login', methods=('GET', 'POST'))
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        data=request.get_json(silent=True)
+        username = data['username']
+        password = data['password']
         db = get_db()
         error = None
         user = db.execute(
@@ -28,10 +29,12 @@ def login():
         if error is None:
             session.clear()
             session['user_id'] = user['id']
-            return redirect(url_for('index'))
+            return ''
 
-        flash(error)
+        return '账户密码不正确',400
     elif request.method == 'GET':
+        if 'user' in g and g.user is not None:
+            return redirect(url_for('index.index'))
         #fastlogin if no password
         db = get_db()
         user = db.execute(
