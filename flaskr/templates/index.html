@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- 引入样式 -->
     <!-- https://element.eleme.cn/#/zh-CN/component/layout 2.13.1-->
-    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="/static/index.css">
     <title>py-zkui</title>
     <style>
         body {
@@ -79,12 +79,12 @@
                 </el-tree>
                 <el-main>
                     <el-table :data="tableData">
-                        <el-table-column prop="name" label="name">
+                        <el-table-column prop="name" label="键">
                         </el-table-column>
-                        <el-table-column prop="value" label="value">
+                        <el-table-column prop="value" label="值">
                         </el-table-column>
                         </el-table-column>
-                        <el-table-column prop="operate" label="operate">
+                        <el-table-column prop="operate" label="操作">
                             <template slot-scope="scope">
                                 <el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">删除
                                 </el-button>
@@ -159,16 +159,11 @@
                     }
                     if (node.level > 1) return resolve([]);
 
-                    setTimeout(() => {
-                        const data = [{
-                            name: 'leaf',
-                            leaf: true
-                        }, {
-                            name: 'zone'
-                        }];
-
-                        resolve(data);
-                    }, 500);
+                    checkZKhealth().then(data=>{
+                        axios.get("/zookeeper/command?ls="+node.data.name).then(v=>{
+                            resolve(eval(v.data).map(e=>{return{"name":e}}));
+                        })
+                    })
                 },
                 changepassword() {
                     if (this.$data.userinfo.haspass) {
@@ -285,6 +280,13 @@
         }).catch(function (error) {
             app.$data.nodeForm.nodes.push({ value: '' })
         });
+
+        //init zookeeper
+        function checkZKhealth(){
+            return axios.get("/zookeeper/status").then(s=>{return s.data=="CONNECTED"?true:false}).catch(e=>{return false});
+        }
+        checkZKhealth();
+        // axios.get("/zookeeper/command?ls=/").then(s=>{s.data})
 
     </script>
 </body>

@@ -26,9 +26,10 @@ def create_app(test_config=None):
     from . import db
     db.init_app(app)
 
-    from . import auth,index,config
+    from . import auth,index,config,zookeeper
     app.register_blueprint(auth.bp)
     app.register_blueprint(index.bp)
     app.register_blueprint(config.bp)
+    app.register_blueprint(zookeeper.bp)
 
     return app
