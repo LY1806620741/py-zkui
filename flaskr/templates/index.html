@@ -75,7 +75,7 @@
 
             <el-container>
                 </el-breadcrumb>
-                <el-tree :props="props" :load="loadNode" lazy show-checkbox id="tree">
+                <el-tree :props="props" :load="loadNode" lazy show-checkbox id="tree" @node-click="handleNodeClick">
                 </el-tree>
                 <el-main>
                     <el-table :data="tableData">
@@ -126,10 +126,7 @@
                 userinfo: {
                     'username': 'no user'
                 },
-                tableData: Array(10).fill({
-                    name: 'key',
-                    value: 'value'
-                }),
+                tableData: [],
                 props: {
                     label: 'name',
                     children: 'zones',
@@ -155,13 +152,15 @@
             methods: {
                 loadNode(node, resolve) {
                     if (node.level === 0) {
-                        return resolve([{ name: '/' }]);
+                        return resolve([{ name: '/',path: '/'}]);
                     }
-                    if (node.level > 1) return resolve([]);
 
                     checkZKhealth().then(data=>{
-                        axios.get("/zookeeper/command?ls="+node.data.name).then(v=>{
-                            resolve(eval(v.data).map(e=>{return{"name":e}}));
+                        axios.get("/zookeeper/command?ls="+node.data.path).then(v=>{
+                            resolve(eval(v.data).map(e=>{return{"name":e,"path":node.data.path+e+"/"}}));
+                            this.tableData=eval(v.data).map(e=>{return{"name":e,"value":null}})
+                        }).catch(e=>{
+                            resolve([]);
                         })
                     })
                 },
@@ -260,6 +259,10 @@
                             eval("this."+command+"()");
                             break;
                     }
+                },
+                handleNodeClick(data,node){
+                    debug=node;
+                    console.log(data.path);
                 }
             }
         })

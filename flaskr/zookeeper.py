@@ -15,10 +15,25 @@ def status():
     else:
         return zk.state
 
+def check_command(key):
+    return key in request.args and request.args.get(key) is not None
+
 @bp.route('/command', methods=['GET'])
 @api_need_login
 def command():
-    ls=request.args.get("ls")
-    if (ls is not None):
-        return str(get_zk().get_children(ls))
+    if check_command("ls"):
+        return str(get_zk().get_children(request.args.get("ls")))
+    elif check_command('get'):
+        data,stat =get_zk().get(request.args.get("get"))
+        return '['+('null' if data is None else '"'+data.decode("utf-8")+'"')+','+str(stat._asdict())+']'
+    elif check_command('set'):
+        kv=request.args.get("set").split("=",1)
+        if len(kv)==2:
+            print(kv,kv[1].encode())
+            return str(get_zk().set(kv[0], kv[1].encode()))
+    elif check_command('create'):
+        kv=request.args.get("create").split("=",1)
+        if len(kv)==2:
+            return str(get_zk().create(kv[0], kv[1].encode()))
+    return '',500
     # return 'false'
