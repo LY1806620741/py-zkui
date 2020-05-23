@@ -25,7 +25,7 @@ def command():
         return str(get_zk().get_children(request.args.get("ls")))
     elif check_command('get'):
         data,stat =get_zk().get(request.args.get("get"))
-        return '['+('null' if data is None else '"'+data.decode("utf-8")+'"')+','+str(stat._asdict())+']'
+        return '['+'"'+request.args.get("get")+'",'+('null' if data is None else '"'+data.decode("utf-8").replace("\"","\\\"")+'"')+','+str(stat._asdict())+']'
     elif check_command('set'):
         kv=request.args.get("set").split("=",1)
         if len(kv)==2:
