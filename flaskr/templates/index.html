@@ -69,7 +69,7 @@
                         <el-breadcrumb separator="/">
                             <el-breadcrumb-item v-for="(item,index) in path" :key="item.path">
                                 <span v-if="index==path.length-1">{{item.title}}</span>
-                                <a v-else @click.pervent="pathLine(item)">{{item.title}}</a>
+                                <a v-else @click.pervent="handleNodeClick(item.node.data,item.node)">{{item.title}}</a>
                             </el-breadcrumb-item>
                         </el-breadcrumb>
                     </el-col>
@@ -78,7 +78,8 @@
 
             <el-container>
                 </el-breadcrumb>
-                <el-tree :props="props" :load="loadNode" lazy show-checkbox id="tree" @node-click="handleNodeClick">
+                <el-tree :data="tree" :props="props" :expand-on-click-node="false" id="tree"
+                    @node-click="handleNodeClick">
                 </el-tree>
                 <el-main>
                     <el-table :data="tableData">
@@ -177,6 +178,11 @@
                     nodes: [],
                     formLabelWidth: '10px'
                 },
+                tree: [{
+                    name: '/',
+                    leaf: true,
+                    path: '/'
+                }],
                 labelPosition: 'right',
                 validateIpPort: (rule, value, callback) => {
                     if (value === '') {
@@ -190,25 +196,33 @@
                 settingTabs: 'nodeForm'
             },
             methods: {
-                loadNode(node, resolve) {
-                    if (node.level === 0) {
-                        return resolve([{ name: '/', path: '/' }]);
-                    }
-                    app.path = [{ title: "/", path: "/" }];
-                    checkZKhealth().then(data => {
-                        axios.get("/zookeeper/command?ls=" + node.data.path).then(v => {
-                            resolve(eval(v.data).map(e => { return { "name": e, "path": node.data.path + e + "/" } }));
-                            this.tableData = [];
-                            eval(v.data).forEach(e => axios.get("/zookeeper/command?get=" + node.data.path + e).then(res => {
-                                data = eval(res.data);
-                                app.tableData.push({ name: e, value: data[1], stat: data[2] });
-                            }));
-                            node.data.path.split("/").forEach(s => { if (s != "") { app.path.push({ title: s, path: "" }); } });
-                        }).catch(e => {
-                            resolve([]);
-                        })
-                    })
-                },
+                // loadNode(node, resolve) {
+                //     if (node.level === 0) {
+                //         return resolve([{ name: '/', path: '/' }]);
+                //     }
+                //     app.path = [{ title: "/", path: "/" }];
+                //     checkZKhealth().then(data => {
+                //         axios.get("/zookeeper/command?ls=" + node.data.path).then(v => {
+                //             this.tableData = [];
+                //             var folder=[]
+                //             p=0;
+                //             eval(v.data).forEach(e => axios.get("/zookeeper/command?get=" + node.data.path + e).then(res => {
+                //                 data = eval(res.data);
+                //                 if(data[2].dataLength==0){
+                //                     app.tableData.splice(p,0,{ name: e, value: data[1], stat: data[2] });
+                //                     folder.push({ "name": e, "path": node.data.path + e + "/" });
+                //                     p+=1;
+                //                 }else{
+                //                     app.tableData.push({ name: e, value: data[1], stat: data[2] });
+                //                 }
+                //                 resolve(folder);
+                //             }));
+                //             node.data.path.split("/").forEach(s => { if (s != "") { app.path.push({ title: s, path: "" }); } });
+                //         }).catch(e => {
+                //             resolve([]);
+                //         })
+                //     })
+                // },
                 changepassword() {
                     if (this.$data.userinfo.haspass) {
                         this.$prompt('输入旧密码', '提示', {
@@ -306,7 +320,36 @@
                     }
                 },
                 handleNodeClick(data, node) {
-                    console.log(data.path);
+                    checkZKhealth().then(data => {
+                        axios.get("/zookeeper/command?ls=" + node.data.path).then(v => {
+                            this.tableData = [];
+                            var folder = []
+                            p = 0;
+                            eval(v.data).forEach(e => axios.get("/zookeeper/command?get=" + node.data.path + e).then(res => {
+                                data = eval(res.data);
+                                if (data[2].dataLength == 0) {
+                                    app.tableData.splice(p, 0, { name: e, value: data[1], stat: data[2] });
+                                    folder.push({ "name": e, "path": node.data.path + e + "/", "leaf": data[2].numChildren > 0 ? false : true });
+                                    p += 1;
+                                } else {
+                                    app.tableData.push({ name: e, value: data[1], stat: data[2] });
+                                }
+                                node.data.zones = (folder);
+                                node.updateChildren();
+                            }));
+                            tmp = node;
+                            console.log("start")
+                            app.path = [];
+                            while (tmp.level != 0) {
+                                console.log(tmp.data.name, tmp.level);
+                                app.path.splice(0, 0, { title: tmp.data.name, node: tmp })
+                                tmp = tmp.parent;
+                            }
+                        }).catch(e => {
+                            node.data.zones = ([]);
+                            node.updateChildren();
+                        })
+                    })
                 }
             }
         })
