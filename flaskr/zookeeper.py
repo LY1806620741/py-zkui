@@ -35,5 +35,10 @@ def command():
         kv=request.args.get("create").split("=",1)
         if len(kv)==2:
             return str(get_zk().create(kv[0], kv[1].encode()))
+        else:
+            return str(get_zk().create(kv[0]))
+    elif check_command('del'):
+        get_zk().delete(request.args.get("del"),recursive=True)
+        return ''
     return '',500
     # return 'false'

@@ -87,7 +87,7 @@
                         </el-table-column>
                         <el-table-column prop="value" label="值">
                         </el-table-column>
-                        <el-table-column prop="operate" label="操作">
+                        <el-table-column prop="otherss" label="其他">
                             <template slot-scope="scope">
                                 <el-popover placement="top-start" trigger="click">
                                     <el-card class="box-card">
@@ -109,8 +109,20 @@
                                     </el-card>
                                     <el-tag slot="reference">状态</el-tag>
                                 </el-popover>
-                                <el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">删除
+                                <el-tag v-if="scope.row.stat.numChildren>0" type="success">节点</el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="operate">
+                            <template slot="header" slot-scope="scope">
+                                <div class="cell" style="float: left;">操作</div>
+                                <el-button style="float: left;" v-if="app.currentPath!=null" size="mini" type="danger"
+                                    @click="handleCreate()">创建子节点</el-button>
+                            </template>
+                            <template slot-scope="scope">
+                                <el-button size="mini" type="danger" @click="handleDelete(scope.$index,scope.row)">删除
                                 </el-button>
+                                <el-button size="mini" type="danger" @click="handleCreate(scope.$index, scope.row)">
+                                    创建子节点</el-button>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -161,6 +173,7 @@
         var app = new Vue({
             el: '#app',
             data: {
+                currentPath: null,
                 path: [
                     { title: "/", path: "/" }
                 ],
@@ -196,33 +209,6 @@
                 settingTabs: 'nodeForm'
             },
             methods: {
-                // loadNode(node, resolve) {
-                //     if (node.level === 0) {
-                //         return resolve([{ name: '/', path: '/' }]);
-                //     }
-                //     app.path = [{ title: "/", path: "/" }];
-                //     checkZKhealth().then(data => {
-                //         axios.get("/zookeeper/command?ls=" + node.data.path).then(v => {
-                //             this.tableData = [];
-                //             var folder=[]
-                //             p=0;
-                //             eval(v.data).forEach(e => axios.get("/zookeeper/command?get=" + node.data.path + e).then(res => {
-                //                 data = eval(res.data);
-                //                 if(data[2].dataLength==0){
-                //                     app.tableData.splice(p,0,{ name: e, value: data[1], stat: data[2] });
-                //                     folder.push({ "name": e, "path": node.data.path + e + "/" });
-                //                     p+=1;
-                //                 }else{
-                //                     app.tableData.push({ name: e, value: data[1], stat: data[2] });
-                //                 }
-                //                 resolve(folder);
-                //             }));
-                //             node.data.path.split("/").forEach(s => { if (s != "") { app.path.push({ title: s, path: "" }); } });
-                //         }).catch(e => {
-                //             resolve([]);
-                //         })
-                //     })
-                // },
                 changepassword() {
                     if (this.$data.userinfo.haspass) {
                         this.$prompt('输入旧密码', '提示', {
@@ -277,7 +263,76 @@
                     }
                 },
                 handleDelete(index, row) {
-                    console.log(index, row);
+                    checkZKhealth().then(data => {
+                        axios.get("/zookeeper/command?del=" + row.path).then(v => {
+                            app.$notify.error({
+                                title: '成功',
+                                message: '成功删除' + row.path,
+                                type: 'success',
+                                position: 'bottom-right'
+                            });
+                            app.handleNodeClick(null, app.path[app.path.length - 1].node);//Refresh
+                        }).catch(e => {
+                            app.$notify.error({
+                                title: '失败',
+                                message: '删除' + row.path + '失败',
+                                position: 'bottom-right'
+                            });
+                        });
+                    });
+                },
+                handleCreate(index, row) {
+                    // const h = this.$createElement;
+                    // this.$msgbox({
+                    //     title: '消息',
+                    //     message: h('p', null, [
+                    //         h('span', null, '键'),
+                    //         h('el-input', {  }, ''),
+                    //         h('span', null, '值'),
+                    //         h('el-input', {  }, ''),
+                    //     ]),
+                    //     showCancelButton: true,
+                    //     confirmButtonText: '确定',
+                    //     cancelButtonText: '取消',
+                    //     beforeClose: (action, instance, done) => {
+                    //         if (action === 'confirm') {
+                    //             instance.confirmButtonLoading = true;
+                    //             instance.confirmButtonText = '执行中...';
+                    //             done();
+                    //         } else {
+                    //             done();
+                    //         }
+                    //     }
+                    // }).then(action => {
+                    //     this.$message({
+                    //         type: 'info',
+                    //         message: 'action: ' + action
+                    //     });
+                    // });
+
+                    this.$prompt('输入节点名称', '提示', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                    }).then(({ value }) => {
+                        axios.get("/zookeeper/command?create=" + (row == null ? app.currentPath : row.path) + value).then(v => {
+                            this.$message({
+                                type: 'success',
+                                message: '创建成功'
+                            });
+                            app.handleNodeClick(null, app.path[app.path.length - 1].node);//Refresh
+                        }).catch(e => {
+                            this.$message({
+                                type: 'error',
+                                message: '创建' + (row == null ? app.currentPath : row.path) + value + '失败，请重试'
+                            });
+                        });
+                    }).catch(() => {
+                        this.$message({
+                            type: 'info',
+                            message: '取消输入'
+                        });
+                    });
+
                 },
                 removeNode(item) {
                     var index = this.nodeForm.nodes.indexOf(item)
@@ -328,25 +383,24 @@
                             eval(v.data).forEach(e => axios.get("/zookeeper/command?get=" + node.data.path + e).then(res => {
                                 data = eval(res.data);
                                 if (data[2].dataLength == 0) {
-                                    app.tableData.splice(p, 0, { name: e, value: data[1], stat: data[2] });
-                                    folder.push({ "name": e, "path": node.data.path + e + "/", "leaf": data[2].numChildren > 0 ? false : true });
+                                    app.tableData.splice(p, 0, { name: e, value: data[1], stat: data[2], path: node.data.path + e + "/" });
+                                    folder.push({ "name": e, "path": node.data.path + e + "/" });
                                     p += 1;
                                 } else {
-                                    app.tableData.push({ name: e, value: data[1], stat: data[2] });
+                                    app.tableData.push({ name: e, value: data[1], stat: data[2], path: node.data.path + e + "/" });
                                 }
-                                node.data.zones = (folder);
+                                node.data.zones = folder;
                                 node.updateChildren();
                             }));
                             tmp = node;
-                            console.log("start")
                             app.path = [];
                             while (tmp.level != 0) {
-                                console.log(tmp.data.name, tmp.level);
                                 app.path.splice(0, 0, { title: tmp.data.name, node: tmp })
                                 tmp = tmp.parent;
                             }
+                            app.currentPath = node.data.path;
                         }).catch(e => {
-                            node.data.zones = ([]);
+                            node.data.zones = [];
                             node.updateChildren();
                         })
                     })
@@ -376,7 +430,6 @@
             return axios.get("/zookeeper/status").then(s => { return s.data == "CONNECTED" ? true : false }).catch(e => { return false });
         }
         checkZKhealth();
-        // axios.get("/zookeeper/command?ls=/").then(s=>{s.data})
 
     </script>
 </body>
