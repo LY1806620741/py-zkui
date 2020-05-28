@@ -121,6 +121,8 @@
                             <template slot-scope="scope">
                                 <el-button size="mini" type="danger" @click="handleDelete(scope.$index,scope.row)">删除
                                 </el-button>
+                                <el-button size="mini" type="danger" @click="handleChange(scope.$index,scope.row)">修改
+                                </el-button>
                                 <el-button size="mini" type="danger" @click="handleCreate(scope.$index, scope.row)">
                                     创建子节点</el-button>
                             </template>
@@ -281,35 +283,32 @@
                         });
                     });
                 },
+                handleChange(index, row) {
+                    this.$prompt('修改值', '提示', {
+                        inputValue:row.value,
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                    }).then(({ value }) => {
+                        axios.get("/zookeeper/command?set=" + row.path+"="+value).then(v => {
+                            this.$message({
+                                type: 'success',
+                                message: '修改'
+                            });
+                            app.handleNodeClick(null, app.path[app.path.length - 1].node);//Refresh
+                        }).catch(e => {
+                            this.$message({
+                                type: 'error',
+                                message: '修改' + (row == null ? app.currentPath : row.path) + value + '失败，请重试'
+                            });
+                        });
+                    }).catch(() => {
+                        this.$message({
+                            type: 'info',
+                            message: '取消输入'
+                        });
+                    });
+                },
                 handleCreate(index, row) {
-                    // const h = this.$createElement;
-                    // this.$msgbox({
-                    //     title: '消息',
-                    //     message: h('p', null, [
-                    //         h('span', null, '键'),
-                    //         h('el-input', {  }, ''),
-                    //         h('span', null, '值'),
-                    //         h('el-input', {  }, ''),
-                    //     ]),
-                    //     showCancelButton: true,
-                    //     confirmButtonText: '确定',
-                    //     cancelButtonText: '取消',
-                    //     beforeClose: (action, instance, done) => {
-                    //         if (action === 'confirm') {
-                    //             instance.confirmButtonLoading = true;
-                    //             instance.confirmButtonText = '执行中...';
-                    //             done();
-                    //         } else {
-                    //             done();
-                    //         }
-                    //     }
-                    // }).then(action => {
-                    //     this.$message({
-                    //         type: 'info',
-                    //         message: 'action: ' + action
-                    //     });
-                    // });
-
                     this.$prompt('输入节点名称', '提示', {
                         confirmButtonText: '确定',
                         cancelButtonText: '取消',

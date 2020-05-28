@@ -29,7 +29,6 @@ def command():
     elif check_command('set'):
         kv=request.args.get("set").split("=",1)
         if len(kv)==2:
-            print(kv,kv[1].encode())
             return str(get_zk().set(kv[0], kv[1].encode()))
     elif check_command('create'):
         kv=request.args.get("create").split("=",1)
