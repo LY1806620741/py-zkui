@@ -34,6 +34,10 @@
         #nodeForm .el-input {
             width: 200px;
         }
+
+        .el-table .hasnode-row {
+            background: rgb(217, 236, 255);
+        }
     </style>
     <script src="/static/vue.min.js"></script>
     <script src="/static/axios.min.js"></script>
@@ -78,11 +82,38 @@
 
             <el-container>
                 </el-breadcrumb>
-                <el-tree :data="tree" :props="props" :expand-on-click-node="false" id="tree"
+                <el-tree :data="tree" ref="tree" :props="props" :expand-on-click-node="false" id="tree"
                     @node-click="handleNodeClick">
                 </el-tree>
                 <el-main>
-                    <el-table :data="tableData">
+                    <el-table :data="tableData" :row-class-name="({row, rowIndex}) =>{
+                        if (row.stat.numChildren>0) {
+                          return 'hasnode-row';
+                        }
+                        return '';
+                      }"
+                        @cell-click="(row, column, cell, event)=>{handleNodeClick(null,app.path[app.path.length - 1].node.childNodes.find(e=>e.data.name===row.name));}">
+                        <el-table-column type="expand">
+                            <template slot-scope="scope">
+                                <el-card class="box-card">
+                                    <div class="text item">
+                                        <p>{{'czxid ' +scope.row.stat.czxid }}</p>
+                                        <p>{{'mzxid ' +scope.row.stat.mzxid}}</p>
+                                        <p>{{'ctime ' +new Date(scope.row.stat.ctime).Format("yyyy-MM-dd HH:mm:ss") }}
+                                        </p>
+                                        <p>{{'mtime ' +new Date(scope.row.stat.mtime).Format("yyyy-MM-dd HH:mm:ss")}}
+                                        </p>
+                                        <p>{{'version ' +scope.row.stat.version}}</p>
+                                        <p>{{'cversion ' +scope.row.stat.cversion}}</p>
+                                        <p>{{'aversion ' +scope.row.stat.aversion}}</p>
+                                        <p>{{'ephemeralOwner ' +scope.row.stat.ephemeralOwner}}</p>
+                                        <p>{{'dataLength ' +scope.row.stat.dataLength}}</p>
+                                        <p>{{'numChildren ' +scope.row.stat.numChildren}}</p>
+                                        <p>{{'pzxid ' +scope.row.stat.pzxid}}</p>
+                                    </div>
+                                </el-card>
+                            </template>
+                        </el-table-column>
                         <el-table-column prop="name" label="键">
                         </el-table-column>
                         <el-table-column prop="value" label="值">
@@ -90,23 +121,7 @@
                         <el-table-column prop="otherss" label="其他">
                             <template slot-scope="scope">
                                 <el-popover placement="top-start" trigger="click">
-                                    <el-card class="box-card">
-                                        <div class="text item">
-                                            <p>{{'czxid ' +scope.row.stat.czxid }}</p>
-                                            <p>{{'mzxid ' +scope.row.stat.mzxid}}</p>
-                                            <p>{{'ctime ' +new Date(scope.row.stat.ctime).Format("yyyy-MM-dd HH:mm:ss") }}
-                                            </p>
-                                            <p>{{'mtime ' +new Date(scope.row.stat.mtime).Format("yyyy-MM-dd HH:mm:ss")}}
-                                            </p>
-                                            <p>{{'version ' +scope.row.stat.version}}</p>
-                                            <p>{{'cversion ' +scope.row.stat.cversion}}</p>
-                                            <p>{{'aversion ' +scope.row.stat.aversion}}</p>
-                                            <p>{{'ephemeralOwner ' +scope.row.stat.ephemeralOwner}}</p>
-                                            <p>{{'dataLength ' +scope.row.stat.dataLength}}</p>
-                                            <p>{{'numChildren ' +scope.row.stat.numChildren}}</p>
-                                            <p>{{'pzxid ' +scope.row.stat.pzxid}}</p>
-                                        </div>
-                                    </el-card>
+
                                     <el-tag slot="reference">状态</el-tag>
                                 </el-popover>
                                 <el-tag v-if="scope.row.stat.numChildren>0" type="success">节点</el-tag>
@@ -285,11 +300,11 @@
                 },
                 handleChange(index, row) {
                     this.$prompt('修改值', '提示', {
-                        inputValue:row.value,
+                        inputValue: row.value,
                         confirmButtonText: '确定',
                         cancelButtonText: '取消',
                     }).then(({ value }) => {
-                        axios.get("/zookeeper/command?set=" + row.path+"="+value).then(v => {
+                        axios.get("/zookeeper/command?set=" + row.path + "=" + value).then(v => {
                             this.$message({
                                 type: 'success',
                                 message: '修改'
@@ -381,7 +396,7 @@
                             p = 0;
                             eval(v.data).forEach(e => axios.get("/zookeeper/command?get=" + node.data.path + e).then(res => {
                                 data = eval(res.data);
-                                if (data[2].dataLength == 0) {
+                                if (data[2].numChildren > 0) {
                                     app.tableData.splice(p, 0, { name: e, value: data[1], stat: data[2], path: node.data.path + e + "/" });
                                     folder.push({ "name": e, "path": node.data.path + e + "/" });
                                     p += 1;
@@ -402,6 +417,7 @@
                             node.data.zones = [];
                             node.updateChildren();
                         })
+                        node.expanded = true;
                     })
                 }
             }
